@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Model Finder — IaaS · PaaS · SaaS</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --iaas: #00e5ff;
+    --paas: #b44bff;
+    --saas: #00ff94;
+    --text: #e8e8f0;
+    --muted: #5a5a78;
+    --card-bg: #13131c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* GRID NOISE BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-orb.a { width: 500px; height: 500px; background: rgba(0,229,255,0.06); top: -100px; left: -100px; }
+  .glow-orb.b { width: 400px; height: 400px; background: rgba(180,75,255,0.06); bottom: -100px; right: -100px; }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* HEADER */
+  header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 16px;
+    border-radius: 2px;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+
+  h1 .iaas { color: var(--iaas); }
+  h1 .paas { color: var(--paas); }
+  h1 .saas { color: var(--saas); }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.7;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* QUIZ SECTION */
+  .quiz-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 40px;
+    margin-bottom: 48px;
+  }
+
+  .quiz-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .quiz-question {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 28px;
+    line-height: 1.3;
+    min-height: 2.6rem;
+    transition: opacity 0.3s;
+  }
+
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .option-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 14px 20px;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .option-btn::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 0;
+    transition: width 0.3s ease;
+    background: currentColor;
+    opacity: 0.06;
+  }
+
+  .option-btn:hover { border-color: var(--text); }
+  .option-btn:hover::before { width: 100%; }
+
+  .option-btn .letter {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--muted);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    color: var(--muted);
+    transition: all 0.2s;
+  }
+
+  .option-btn:hover .letter {
+    border-color: var(--text);
+    color: var(--text);
+  }
+
+  .progress-bar {
+    height: 2px;
+    background: var(--border);
+    margin-top: 32px;
+    border-radius: 1px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--iaas), var(--paas), var(--saas));
+    transition: width 0.5s ease;
+    border-radius: 1px;
+  }
+
+  .progress-text {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+
+  /* RESULT */
+  .result-section {
+    display: none;
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-hero {
+    border-radius: 4px;
+    padding: 48px 40px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .result-hero::after {
+    content: attr(data-model);
+    position: absolute;
+    right: -20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Syne', sans-serif;
+    font-size: 120px;
+    font-weight: 800;
+    opacity: 0.06;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    pointer-events: none;
+  }
+
+  .result-hero.iaas { background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(0,229,255,0.02)); border: 1px solid rgba(0,229,255,0.25); }
+  .result-hero.paas { background: linear-gradient(135deg, rgba(180,75,255,0.08), rgba(180,75,255,0.02)); border: 1px solid rgba(180,75,255,0.25); }
+  .result-hero.saas { background: linear-gradient(135deg, rgba(0,255,148,0.08), rgba(0,255,148,0.02)); border: 1px solid rgba(0,255,148,0.25); }
+
+  .result-tag {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .iaas .result-tag { color: var(--iaas); }
+  .paas .result-tag { color: var(--paas); }
+  .saas .result-tag { color: var(--saas); }
+
+  .result-name {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+  }
+
+  .result-full-name {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 20px;
+  }
+
+  .result-desc {
+    font-size: 14px;
+    line-height: 1.8;
+    max-width: 520px;
+    color: #b0b0c8;
+  }
+
+  /* CARDS GRID */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .info-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 24px;
+  }
+
+  .info-card-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .info-card-content {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #c0c0d8;
+  }
+
+  .info-card-content ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .info-card-content ul li::before {
+    content: '→ ';
+    color: var(--muted);
+  }
+
+  /* PROVIDERS */
+  .providers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .provider-chip {
+    font-size: 11px;
+    padding: 5px 12px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: var(--surface);
+  }
+
+  /* COMPARISON TABLE */
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    margin-top: 48px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 48px;
+  }
+
+  .comparison-table th {
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .comparison-table th:nth-child(2) { color: var(--iaas); }
+  .comparison-table th:nth-child(3) { color: var(--paas); }
+  .comparison-table th:nth-child(4) { color: var(--saas); }
+
+  .comparison-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: #a0a0b8;
+    vertical-align: top;
+    line-height: 1.6;
+  }
+
+  .comparison-table td:first-child {
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .comparison-table tr:hover td {
+    background: rgba(255,255,255,0.02);
+  }
+
+  .dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .dot.high { background: #00ff94; }
+  .dot.mid { background: #ffcc00; }
+  .dot.low { background: #ff4466; }
+
+  /* RESTART BUTTON */
+  .btn-restart {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 12px 24px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .btn-restart:hover {
+    border-color: var(--text);
+    color: var(--text);
+  }
+
+  /* FOOTER */
+  footer {
+    margin-top: 80px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: gap;
+    gap: 16px;
+  }
+
+  .footer-note {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .footer-note strong { color: #5a5a78; }
+
+  .model-dots {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .model-dot-item {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  @media (max-width: 600px) {
+    .quiz-section, .result-hero { padding: 28px 24px; }
+    .wrapper { padding: 40px 16px 60px; }
+    h1 { font-size: 2.2rem; }
+    .comparison-table { font-size: 11px; }
+    .comparison-table td, .comparison-table th { padding: 10px 10px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow-orb a"></div>
+<div class="glow-orb b"></div>
+
+<div class="wrapper">
+
+  <header>
+    <div class="badge">Computação em Nuvem · Ferramenta Interativa</div>
+    <h1>
+      <span class="iaas">IaaS</span> ·
+      <span class="paas">PaaS</span> ·
+      <span class="saas">SaaS</span>
+    </h1>
+    <p class="subtitle">Responda 4 perguntas sobre o seu cenário e descubra qual modelo de nuvem é o mais adequado para você ou sua empresa.</p>
+  </header>
+
+  <!-- QUIZ -->
+  <div class="quiz-section" id="quiz">
+    <div class="quiz-label">// diagnóstico</div>
+    <div class="quiz-question" id="question-text">Qual é o seu perfil principal?</div>
+    <div class="options" id="options-container"></div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="progress-text" id="progress-text">Pergunta 1 de 4</div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result-section" id="result">
+
+    <div id="result-hero" class="result-hero">
+      <div class="result-tag" id="result-tag">Resultado</div>
+      <div class="result-name" id="result-name">—</div>
+      <div class="result-full-name" id="result-full-name">—</div>
+      <div class="result-desc" id="result-desc">—</div>
+    </div>
+
+    <div class="cards-grid" id="cards-grid"></div>
+
+    <button class="btn-restart" onclick="restart()">← Refazer o diagnóstico</button>
+
+    <div class="section-title">Comparativo completo dos modelos</div>
+
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Critério</th>
+          <th>IaaS</th>
+          <th>PaaS</th>
+          <th>SaaS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Controle técnico</td>
+          <td><span class="dot high"></span>Alto</td>
+          <td><span class="dot mid"></span>Médio</td>
+          <td><span class="dot low"></span>Baixo</td>
+        </tr>
+        <tr>
+          <td>Velocidade de deploy</td>
+          <td><span class="dot low"></span>Lenta</td>
+          <td><span class="dot mid"></span>Média</td>
+          <td><span class="dot high"></span>Imediata</td>
+        </tr>
+        <tr>
+          <td>Custo inicial</td>
+          <td><span class="dot mid"></span>Médio</td>
+          <td><span class="dot mid"></span>Médio</td>
+          <td><span class="dot high"></span>Baixo</td>
+        </tr>
+        <tr>
+          <td>Exige equipe de TI</td>
+          <td><span class="dot low"></span>Sim, experiente</td>
+          <td><span class="dot mid"></span>Sim, devs</td>
+          <td><span class="dot high"></span>Não</td>
+        </tr>
+        <tr>
+          <td>Escalabilidade</td>
+          <td><span class="dot high"></span>Total</td>
+          <td><span class="dot high"></span>Alta</td>
+          <td><span class="dot mid"></span>Limitada ao plano</td>
+        </tr>
+        <tr>
+          <td>Personalização</td>
+          <td><span class="dot high"></span>Máxima</td>
+          <td><span class="dot mid"></span>Na aplicação</td>
+          <td><span class="dot low"></span>Mínima</td>
+        </tr>
+        <tr>
+          <td>Responsabilidade por SO</td>
+          <td>Você</td>
+          <td>Provedor</td>
+          <td>Provedor</td>
+        </tr>
+        <tr>
+          <td>Caso de uso típico</td>
+          <td>Servidores, VMs, storage</td>
+          <td>Deploy de apps, APIs</td>
+          <td>Email, CRM, colaboração</td>
+        </tr>
+        <tr>
+          <td>Exemplos reais</td>
+          <td>AWS EC2, Azure VMs, GCP Compute</td>
+          <td>Heroku, Google App Engine, Render</td>
+          <td>Gmail, Salesforce, Slack, Office 365</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button class="btn-restart" onclick="restart()">← Refazer o diagnóstico</button>
+  </div>
+
+  <footer>
+    <div class="footer-note">
+      Baseado no material <strong>Gerenciamento de Computação em Nuvem</strong><br>
+      Cruzeiro do Sul Virtual · Projeto acadêmico aplicado
+    </div>
+    <div class="model-dots">
+      <div class="model-dot-item" style="background:var(--iaas)"></div>
+      <div class="model-dot-item" style="background:var(--paas)"></div>
+      <div class="model-dot-item" style="background:var(--saas)"></div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+const questions = [
+  {
+    text: "Qual é o seu perfil principal?",
+    options: [
+      { text: "Sou da área de infraestrutura / DevOps", scores: { iaas: 3, paas: 1, saas: 0 } },
+      { text: "Sou desenvolvedor(a) de software", scores: { iaas: 1, paas: 3, saas: 0 } },
+      { text: "Sou gestor(a) ou usuário final", scores: { iaas: 0, paas: 1, saas: 3 } },
+      { text: "Sou empreendedor(a) sem equipe técnica", scores: { iaas: 0, paas: 0, saas: 3 } },
+    ]
+  },
+  {
+    text: "O que você precisa fazer na nuvem?",
+    options: [
+      { text: "Criar e gerenciar servidores, redes e armazenamento", scores: { iaas: 3, paas: 0, saas: 0 } },
+      { text: "Fazer deploy e escalar aplicações que desenvolvo", scores: { iaas: 0, paas: 3, saas: 0 } },
+      { text: "Usar ferramentas prontas como e-mail, CRM ou colaboração", scores: { iaas: 0, paas: 0, saas: 3 } },
+      { text: "Migrar um data center local para a nuvem", scores: { iaas: 3, paas: 1, saas: 0 } },
+    ]
+  },
+  {
+    text: "Qual é o nível de controle que você precisa?",
+    options: [
+      { text: "Total — quero configurar tudo do zero (SO, rede, segurança)", scores: { iaas: 3, paas: 0, saas: 0 } },
+      { text: "Parcial — quero focar no código, não em infraestrutura", scores: { iaas: 0, paas: 3, saas: 0 } },
+      { text: "Nenhum — só quero usar e pagar mensalidade", scores: { iaas: 0, paas: 0, saas: 3 } },
+      { text: "Médio — quero flexibilidade mas sem gerenciar servidores", scores: { iaas: 1, paas: 3, saas: 1 } },
+    ]
+  },
+  {
+    text: "Como é a sua situação de orçamento e prazo?",
+    options: [
+      { text: "Tenho tempo e equipe para configurar tudo com cuidado", scores: { iaas: 3, paas: 1, saas: 0 } },
+      { text: "Preciso lançar rápido e ajustar depois", scores: { iaas: 0, paas: 3, saas: 1 } },
+      { text: "Quero custo previsível e zero manutenção técnica", scores: { iaas: 0, paas: 0, saas: 3 } },
+      { text: "Projeto pontual ou teste de curto prazo", scores: { iaas: 1, paas: 2, saas: 2 } },
+    ]
+  }
+];
+
+const results = {
+  iaas: {
+    name: "IaaS",
+    fullName: "Infrastructure as a Service",
+    colorClass: "iaas",
+    desc: "Você tem perfil técnico e precisa de controle total sobre a infraestrutura. IaaS oferece servidores virtuais, armazenamento e redes configuráveis. Ideal para equipes que precisam de flexibilidade máxima sem adquirir hardware físico.",
+    cards: [
+      {
+        label: "Quando usar",
+        content: `<ul><li>Migração de data center</li><li>Cargas de trabalho variáveis</li><li>Ambientes de teste e desenvolvimento</li><li>Sistemas com requisitos específicos de SO</li></ul>`
+      },
+      {
+        label: "Responsabilidades suas",
+        content: `<ul><li>Sistema Operacional</li><li>Middleware e runtime</li><li>Aplicações e dados</li><li>Segurança da aplicação</li></ul>`
+      },
+      {
+        label: "Provedores principais",
+        content: `<div class="providers"><span class="provider-chip">AWS EC2</span><span class="provider-chip">Azure VMs</span><span class="provider-chip">Google Compute</span><span class="provider-chip">DigitalOcean</span><span class="provider-chip">Linode</span></div>`
+      }
+    ]
+  },
+  paas: {
+    name: "PaaS",
+    fullName: "Platform as a Service",
+    colorClass: "paas",
+    desc: "Você é desenvolvedor(a) e quer focar no código sem gerenciar infraestrutura. PaaS cuida do servidor, SO e middleware — você só sobe a aplicação. Perfeito para startups e times ágeis que precisam de velocidade de entrega.",
+    cards: [
+      {
+        label: "Quando usar",
+        content: `<ul><li>Deploy rápido de aplicações web</li><li>APIs e microsserviços</li><li>Ambientes de CI/CD</li><li>Startups com time enxuto</li></ul>`
+      },
+      {
+        label: "Responsabilidades suas",
+        content: `<ul><li>Código da aplicação</li><li>Dados e banco de dados</li><li>Lógica de negócio</li><li>Configurações da aplicação</li></ul>`
+      },
+      {
+        label: "Provedores principais",
+        content: `<div class="providers"><span class="provider-chip">Heroku</span><span class="provider-chip">Render</span><span class="provider-chip">Google App Engine</span><span class="provider-chip">Vercel</span><span class="provider-chip">Railway</span></div>`
+      }
+    ]
+  },
+  saas: {
+    name: "SaaS",
+    fullName: "Software as a Service",
+    colorClass: "saas",
+    desc: "Você precisa de uma solução pronta, sem dor de cabeça técnica. SaaS entrega software completo via internet — basta assinar e usar. Ideal para empresas que querem automatizar processos sem contratar TI especializada.",
+    cards: [
+      {
+        label: "Quando usar",
+        content: `<ul><li>E-mail corporativo e colaboração</li><li>CRM e automação de vendas</li><li>ERP e gestão empresarial</li><li>Ferramentas de marketing</li></ul>`
+      },
+      {
+        label: "Responsabilidades suas",
+        content: `<ul><li>Apenas os dados inseridos</li><li>Configurações do perfil</li><li>Escolha do plano correto</li><li>Treinamento dos usuários</li></ul>`
+      },
+      {
+        label: "Exemplos amplamente usados",
+        content: `<div class="providers"><span class="provider-chip">Gmail/G Suite</span><span class="provider-chip">Salesforce</span><span class="provider-chip">Slack</span><span class="provider-chip">Office 365</span><span class="provider-chip">Zoom</span></div>`
+      }
+    ]
+  }
+};
+
+let current = 0;
+let scores = { iaas: 0, paas: 0, saas: 0 };
+const letters = ['A', 'B', 'C', 'D'];
+
+function renderQuestion() {
+  const q = questions[current];
+  document.getElementById('question-text').textContent = q.text;
+  const container = document.getElementById('options-container');
+  container.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.innerHTML = `<span class="letter">${letters[i]}</span>${opt.text}`;
+    btn.onclick = () => selectOption(opt.scores);
+    container.appendChild(btn);
+  });
+  const pct = (current / questions.length) * 100;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = `Pergunta ${current + 1} de ${questions.length}`;
+}
+
+function selectOption(s) {
+  scores.iaas += s.iaas;
+  scores.paas += s.paas;
+  scores.saas += s.saas;
+  current++;
+  if (current < questions.length) {
+    document.getElementById('question-text').style.opacity = '0';
+    setTimeout(() => {
+      renderQuestion();
+      document.getElementById('question-text').style.opacity = '1';
+    }, 200);
+  } else {
+    showResult();
+  }
+}
+
+function showResult() {
+  document.getElementById('progress-fill').style.width = '100%';
+  document.getElementById('quiz').style.display = 'none';
+
+  const winner = Object.entries(scores).sort((a,b) => b[1]-a[1])[0][0];
+  const r = results[winner];
+
+  const hero = document.getElementById('result-hero');
+  hero.className = `result-hero ${r.colorClass}`;
+  hero.setAttribute('data-model', r.name);
+  document.getElementById('result-tag').textContent = '// modelo recomendado';
+  document.getElementById('result-name').textContent = r.name;
+  document.getElementById('result-full-name').textContent = r.fullName;
+  document.getElementById('result-desc').textContent = r.desc;
+
+  const grid = document.getElementById('cards-grid');
+  grid.innerHTML = '';
+  r.cards.forEach(c => {
+    const card = document.createElement('div');
+    card.className = 'info-card';
+    card.innerHTML = `<div class="info-card-label">${c.label}</div><div class="info-card-content">${c.content}</div>`;
+    grid.appendChild(card);
+  });
+
+  const resultSection = document.getElementById('result');
+  resultSection.style.display = 'block';
+  resultSection.style.animation = 'none';
+  resultSection.offsetHeight;
+  resultSection.style.animation = 'fadeUp 0.5s ease forwards';
+  resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function restart() {
+  current = 0;
+  scores = { iaas: 0, paas: 0, saas: 0 };
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('quiz').style.display = 'block';
+  renderQuestion();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+renderQuestion();
+</script>
+</body>
+</html>
